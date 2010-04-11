@@ -1,0 +1,107 @@
+ENVV
+
+Envv is a shell-independent way of handling environment variables.
+It lets you set environment variables, and manipulate colon-separated
+paths in an easy, shell-independent way.  This makes writing setup scripts
+for softare products a snap.  Instead of users hard-coding initialization
+steps in their .cshrc or .profile files, they can source system-wide
+files.  Then, if you ever move any software packages, users don't
+have any problem.
+
+For example, suppose the commercial software packaged FOOBAR requires
+'/usr/local/foobar/bin' to be on the user's path, and requires the
+environment variable 'FOOHOME' to be set to '/usr/local/foobar'
+
+Just create the following script:
+
+	eval `envv add PATH /usr/local/foobar/bin`
+	eval `envv set FOOHOME /usr/local/foobar`
+
+Then, users of csh, tcsh, bash, sh or ksh can simply source the script,
+and everything will work fine.
+
+BUILDING ENVV
+
+Envv is a ridiculously simple program.  You may want to glance at the
+first few lines of envv.c, and take a look at the Makefile.  But all you
+should have to to do compile it is type 'make'.  This makes the executable
+'envv', which you can copy to your favourite system directory.  The manual
+page is in 'envv.1'
+
+CHANGES TO ENVV:
+
+* Version 1.6 (11 July 1995)
+
++ Bug fixes
+
+- Fixed the path comparison function.  The old version would
+  incorrectly match /u/share and /usr/foo because the trailing-slash
+  logic was confused.  Thanks to Caleb Epstein for finding and reporting
+  the bug.
+
+* Version 1.5
+
++ Bug fixes
+
+- Made directives case-insensitive (suggested by Steve Shoopak.)
+
+- Changed the definition of MAX_VAL_LEN from 256 to 2048 to allow for
+  very long paths.
+
+* Version 1.4 (10 May 1994)
+
++ Bug fixes
+
+- If a set command was followed by add/move/del commands on stdin,
+  it didn't work -- the results of the set were not saved in envv's
+  environment.
+
+* Version 1.3 (10 May 1994)
+
++ Bug fixes
+
+- I was freeing a string after sending it to putenv().  Bad news.
+  This patch fixes that.
+
+* Version 1.2 (18 April 1994)
+
++ Enhancements
+
+- Added the "local" directive to set variables without exporting them
+  to the environment.
+
+- Added the '-e', -h' and '-s' options.
+
+- If no directives are supplied on command line, envv reads directives
+  from stdin and issues commands based on those directives.  Directives
+  on stdin should be supplied one-per-line.
+
++ Bug fixes
+
+- Fixed up the usage display to show the "choose" directive, which had
+  been missing.
+
+* Version 1.1 (22 March 1994)
+
++ Enhancements
+
+- Modified the path manipulation commands so that trailing slashes do
+  not affect comparison of directories.  That is, foo/bar/ and foo/bar
+  are considered the same.
+
+- Added the 'zsh' shell to the list of shells envv recognizes.
+
+- Added the 'choose' directive -- see the man page.
+
+* Version 1.0 (8 Feb 1994)
+
+- First version.
+
+--
+David F. Skoll
+986 Eiffel Avenue
+Ottawa, Ontario
+K2C 0J2 Canada
+(613) 225-8687
+<dfs@doe.carleton.ca>
+<aa775@freenet.carleton.ca>

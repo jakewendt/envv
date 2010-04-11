@@ -1,0 +1,202 @@
+.TH ENVV 1 "18 April 1994"
+.UC 4
+.SH NAME
+envv \- manipulate environment variables in shell-independent manner
+.SH SYNOPSIS
+\fBenvv \fR[\fIoptions\fR]\fB set\fR \fIenv_var\fR \fIvalue\fR
+.PP
+\fBenvv \fR[\fIoptions\fR]\fB local\fR \fIenv_var\fR \fIvalue\fR
+.PP
+\fBenvv \fR[\fIoptions\fR]\fB add\fR \fIpath_var\fR \fIdir\fR [\fIpos\fR]
+.PP
+\fBenvv \fR[\fIoptions\fR]\fB move\fR \fIpath_var\fR \fIdir\fR \fIpos\fR
+.PP
+\fBenvv \fR[\fIoptions\fR]\fB del\fR \fIpath_var\fR \fIdir\fR
+.PP
+\fBenvv \fR[\fIoptions\fR]\fB choose\fR \fIsh_val\fR \fIcsh_val\fR
+.PP
+\fBenvv \fR[\fIoptions\fR]
+.SH OPTIONS
+.TP
+.B \-e
+Do not escape shell meta-characters when issuing commands
+.TP
+.B \-s
+Issue a semicolon after each command
+.TP
+.B \-h
+Display usage information
+.SH DESCRIPTION
+\fBEnvv\fR is used to manipulate environment variables in a shell-independent
+manner.  It is most useful in administrator-maintained setup files for
+various software packages.
+.PP
+\fBEnvv\fR accepts directives, either on the command line or from
+standard input, and issues shell commands tailored to the user's
+shell.
+.PP
+For example, on our system, each software package has a setup script
+in a fixed directory (/usr/share/setup) which sets up environment
+variables and adds directories to the users' PATH as required by the
+package.  The scripts to do this are slightly different for csh-like
+shells (csh, tcsh) and sh-like shells (sh, ksh, bash.)  \fBEnvv\fR
+eliminates the need for two separate scripts.
+.PP
+\fBEnvv\fR examines the \fBSHELL\fR environment variable for the name
+of a shell which it recognizes.  If that doesn't work, it uses information
+from the \fBpasswd\fR file to find the user's shell.  It then issues
+commands appropriate for the shell to standard output.  Here's a simple
+example:
+.PP
+.nf
+	eval `envv set NAME David`
+.fi
+.PP
+If your shell is csh, then \fBenvv\fR emits "setenv NAME David" to
+standard output.  If your shell is sh, the it emits
+"NAME=David; export NAME" to standard output.  Either way, the environment
+variable is set correctly.
+.SH SET
+The simplest directive is the \fBset\fR command, illustrated above.
+Note that shell characters are normally escaped, so that:
+.PP
+.nf
+	envv set NAME 'David* F. Skoll'
+.fi
+.PP
+will emit "setenv NAME David\\*\\ F.\\ Skoll" under csh.  However, if
+the \fB\-e\fR option is supplied, then \fBEnvv\fR will emit "setenv
+NAME David* F. Skoll", with all the difficulties that may imply.
+.SH LOCAL
+\fBLocal\fR is similar to \fBset\fR, except that it does not export
+the variable to the environment.  Thus:
+.PP
+.nf
+	envv local name David
+.fi
+.PP
+will emit "set name=David" in csh, and "name=David" in sh or bash.
+.SH ADD
+The \fBadd\fR directive adds the specified directory to a colon-separated
+path list, if the directory is not already present.  If \fBpos\fR is
+supplied, the new directory is placed at the specified position, which
+are numbered starting with 1.  If \fBpos\fR is not specified, or is
+out-of-range, the new directory is added at the end.
+.PP
+For example, suppose that under csh, your PATH is /bin:/usr/bin.  Then:
+.PP
+.nf
+	envv add PATH /foo     yields "setenv PATH /bin:/usr/bin:/foo"
+	envv add PATH /foo 1   yields "setenv PATH /foo:/bin:/usr/bin"
+	envv add PATH /foo 2   yields "setenv PATH /bin:/foo:/usr/bin"
+	envv add PATH /bin     yields nothing - /bin already on path
+	envv add PATH /bin 2   yields "setenv PATH /usr/bin:/bin"
+.fi
+.PP
+The last example shows that an 'add' is converted to a 'move' if the
+directory is already on the path, and a position is supplied.  Of course,
+to have any effect, all of the above examples would be used in an
+eval `...` structure.
+.SH DEL
+The \fBdel\fR command deletes a directory from the path variable.
+Suppose that MANPATH is set to /man:/usr/man, and that your shell is
+bash.  Then:
+.PP
+.nf
+	envv del MANPATH /man     yields "MANPATH=/usr/man; export MANPATH"
+	envv del MANPATH /usr/man yields "MANPATH=/man; export MANPATH"
+	envv del MANPATH /foo     yields nothing
+.fi
+.SH MOVE
+The \fBmove\fR command moves a directory in the path to the specified
+position.  Suppose you're running tcsh, and the environment variable
+P is set to a:b:c:d.  Then:
+.PP
+.nf
+	envv move P a 2         yields "setenv P b:a:c:d"
+	envv move P a 999       yields "setenv P b:c:d:a"
+	envv move P d 1         yields "setenv P d:a:b:c"
+	envv move P e 1         yields nothing - e is not on path.
+.fi
+.SH CHOOSE
+The \fBchoose\fR command is very simple:  It takes two arguments.  If
+the user's shell is like \fBsh\fR, then the first argument is printed.
+If it is like \fBcsh\fR, then the second argument is printed.
+.PP
+This is useful if commercial vendors have supplied two versions of
+scripts which must be sourced.  Your system script can select the
+proper script as follows:
+.PP
+.nf
+	source `envv choose script.sh script.csh`
+.fi
+.PP
+This can also be used as an escape hatch for complicated tests which
+really do require two separate shell scripts.
+.PP
+.SH SUPPLYING DIRECTIVES ON STANDARD INPUT
+If no directives are given on the command line, then \fBenvv\fR
+reads standard input for directives, which should be supplied
+one-per-line.  \fBEnvv\fR processes all of the directives until
+end-of-file is encountered.  For example, you could do something
+like this:
+.PP
+.nf
+	envv << 'END_OF_STUFF' > /tmp/env.$$
+	set A 1
+	set B 2
+	add PATH /bin/foo
+	'END_OF_STUFF'
+	source /tmp/env.$$
+	rm /tmp/env.$$
+.fi
+.PP
+This creates a temporary shell script which holds the commands to
+set A and B, and add /bin/foo to the path.  This temporary script
+is then sourced and deleted.  If you have many variables to
+set, this may be faster and/or easier to maintain than multiple
+\fBenvv\fR commands.
+.PP
+When \fBenvv\fR reads from standard input, it uses whitespace characters
+to separate directives from their arguments, and the arguments from each
+other.  If you want to include whitespace in an argument, escape it with
+a backslash.  No other characters need be escaped.  For example, if you
+want to set the environment variable NAME to "David Skoll", use this in
+the input to \fBenvv\fR:
+.PP
+.nf
+	set NAME David\\ Skoll
+.fi
+.PP
+.SH NOTES
+The path-manipulation directives (\fBadd\fR, \fBmove\fR, \fBdel\fR)
+ignore trailing slashes when comparing path components.  Thus,
+"/usr/local" and "/usr/local/" are considered the same.  When
+components are added or moved in a path variable, they inherit
+whatever slashes are supplied in the \fIdir\fR argument.  Experiment...
+.PP
+The path-manipulation commands can add, move or delete only one
+directory at a time.  For example, use this:
+.PP
+.nf
+		add PATH /foo
+		add PATH /bar
+.fi
+.PP
+and not this:
+.PP
+.nf
+		add PATH /foo:/bar
+.fi
+.PP
+.SH AUTHOR
+\fBEnvv\fR is Copyright 1994 by David F. Skoll.  It may be distributed for
+free.  The only fees which may be charged are normal media costs or
+BBS access fees.  \fBEnvv\fR may not be distributed as part of a commercial
+package.  Other fees, such as support fees, consulting fees, or special
+higher-than-normal BBS access fees may not be charged.
+.SH BUGS
+If you have multiple \fBadd\fR, \fBdel\fR or \fBmove\fR commands in a
+standard-input command list, they emit multiple shell commands to set
+the path variable.  It would be nicer if only one command which
+reflected the final result were emitted.
