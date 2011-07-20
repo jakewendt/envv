@@ -70,18 +70,21 @@ typedef struct {
 } ShellType;
 
 ShellType Shells[] = {
-   { "bash", SH_LIKE },
-   { "sh",   SH_LIKE },
-   { "ksh",  SH_LIKE },
-   { "zsh",  SH_LIKE },
-   { "rsh",  SH_LIKE },
-   { "csh",  CSH_LIKE },
-   { "tcsh", CSH_LIKE },
-   { NULL,   NO_SH }
+    { "ash",  SH_LIKE },
+    { "bash", SH_LIKE },
+    { "csh",  CSH_LIKE },
+    { "dash", SH_LIKE },
+    { "ksh",  SH_LIKE },
+    { "mksh", SH_LIKE },
+    { "rsh",  SH_LIKE },
+    { "sh",   SH_LIKE },
+    { "tcsh", CSH_LIKE },
+    { "zsh",  SH_LIKE },
+    { NULL,   NO_SH }
 };
 
 /* A list of all the characters which should be escaped */
-char *escape = "\\\"'!$%^&*()[]<>{}`~| ;?";
+char *escape = "\\\"'!$%^&*()[]<>{}`~| ;?\t";
 static int ShouldEscape = 1;
 
 /* Trailing semicolon? */
