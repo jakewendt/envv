@@ -596,7 +596,19 @@ int what;
    if (!UseCmdLine) {
       /* Max. length is: Length of var name + '=' + oldpath + ':' + component
 	 + '\0' */
-      newpathlen = oldpathlen + 3 + strlen(var) + strlen(dir);
+/*
+      newpathlen = oldpathlen + 3 + strlen(var) + strlen(dir); 
+
+	github.com issue #1 raised by bukzor with fix from David Skoll 
+
+	The code is wrong on all platforms (it overwrites one byte past the
+	malloc'd string with a 0. I guess it only manifested itself on x86_64
+	because of details of the glibc implementation on that platform.
+
+	Changing the 3 to a 4.
+
+*/
+      newpathlen = oldpathlen + 4 + strlen(var) + strlen(dir);
       envstr = (char *) malloc(newpathlen);
       if (!envstr) {
 	 fprintf(stderr, "%s: out of memory!\n", Argv[0]);
