@@ -30,6 +30,20 @@ page is in 'envv.1'
 
 CHANGES TO ENVV:
 
+* Version 1.7 (14 July 2011)
+
++ Licence change
+
+  ENVV is now licensed under the MIT license
+  (http://en.wikipedia.org/wiki/MIT_License)
+
+  The official license terms are in the man page, envv.1
+
++ Bug fixes
+
+- Fixed segmentation fault identified at
+  https://github.com/jakewendt/envv/issues/1
+
 * Version 1.6 (11 July 1995)
 
 + Bug fixes
@@ -99,9 +113,6 @@ CHANGES TO ENVV:
 
 --
 David F. Skoll
-986 Eiffel Avenue
-Ottawa, Ontario
-K2C 0J2 Canada
-(613) 225-8687
-<dfs@doe.carleton.ca>
-<aa775@freenet.carleton.ca>
+Roaring Penguin Software Inc.
+<dfs@roaringpenguin.com>
+613 231-6599

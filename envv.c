@@ -5,15 +5,9 @@
 /*  Program to manipulate environment variables in a           */
 /*  shell-independent way.                                     */
 /*                                                             */
-/*  Copyright (C) 1994 by David F. Skoll                       */
-/*                                                             */
-/*     986 Eiffel Avenue                                       */
-/*     Ottawa, Ontario                                         */
-/*     K2C 0J2 Canada                                          */
-/*                                                             */
-/*     (613) 225-8687                                          */
-/*     <dfs@doe.carleton.ca>                                   */
-/*     <aa775@freenet.carleton.ca>                             */
+/*  Copyright (C) 1994-2011 by Roaring Penguin Software Inc.   */
+/*  http://www.roaringpenguin.com                              */
+/*  dfs@roaringpenguin.com                                     */
 /*                                                             */
 /*  Usage:                                                     */
 /*  eval `envv choose sh-name csh-name`                        */
@@ -31,20 +25,11 @@
 /*  If no commands given on command line, read from stdin      */
 /*                                                             */
 /***************************************************************/
-#define VERSION "1.6"
+#define VERSION "1.7"
+#define _POSIX_C_SOURCE 200809L
 
-/* I need to use malloc.  If its prototype is in malloc.h, #define
-   NEED_MALLOC_H. */
-
-/* #define NEED_MALLOC_H 1 */
-
-/* If you don't have the function strcasecmp, #define NO_STRCASECMP */
-/* #define NO_STRCASECMP */
-
-/* If you have stdlib.h, define HAVE_STDLIB_H. */
-#define HAVE_STDLIB_H 1
-
-#define _POSIX_SOURCE
+/* For strdup prototype */
+#define _SVID_SOURCE 1
 
 #include <ctype.h>
 #include <stdio.h>
@@ -52,13 +37,8 @@
 #include <string.h>
 #include <pwd.h>
 #include <sys/types.h>
-
-#ifdef NEED_MALLOC_H
-#include <malloc.h>
-#endif
-#ifdef HAVE_STDLIB_H
+#include <string.h>
 #include <stdlib.h>
-#endif
 
 /* Maximum number of components allowed in a colon-separated path list */
 
@@ -66,17 +46,6 @@
 
 char *PathComp[MAXCOMPONENTS];
 int NumComponents;
-
-/* Does the C compiler have prototypes and const? */
-#ifdef __STDC__
-#define HAVE_PROTOS
-#endif
-
-#ifdef HAVE_PROTOS
-#define ARGS(x) x
-#else
-#define ARGS(x) ()
-#endif
 
 /* Possible types of shells */
 #define NO_SH    -1
@@ -139,52 +108,23 @@ char Pos[MAX_POS_LEN+1];
 int ArgsSupplied;
 
 /* Function Prototypes */
-void Init ARGS ((int argc, char *argv[]));
-int FigureShellTypeFromName ARGS ((char *s));
-int GetShellType ARGS ((void));
-void DoSetenv ARGS ((const char *var, const char *val, int shell, int local));
-void DoAdd ARGS ((const char *var, const char *val, int shell, int pos));
-void DoDel ARGS ((const char *var, const char *val, int shell));
-void DoMove ARGS ((const char *var, const char *val, int shell, int pos));
-void DoChoose ARGS ((const char *val1, const char *val2, int shell));
-int SplitPath ARGS ((char *path));
-int FindCurPos ARGS ((const char *dir));
-void PrintEscaped ARGS ((const char *s, int colon));
-void PathManip ARGS ((const char *var, const char *dir, int shell, int pos, int what));
-void Usage ARGS ((const char *name));
-int ComparePathElements ARGS ((const char *p1, const char *p2));
-int GetCommand ARGS ((void));
-int ReadEscapedToken ARGS ((char *buf, int len, int eoln_flag));
-int ReadCmdFromStdin ARGS ((void));
-
-/***************************************************************/
-/*                                                             */
-/*  strcasecmp:  Define my own for those compilers that don't  */
-/*  have it.                                                   */
-/*                                                             */
-/***************************************************************/
-#ifdef NO_STRCASECMP
-#ifdef HAVE_PROTOS
-int strcasecmp(const char *s1, const char *s2)
-#else
-int strcasecmp(s1, s2)
-char *s1, *s2;
-#endif
-{
-   char c1, c2;
-   while(*s1 && *s2) { /* Could use while(*s1), but it's more cryptic */
-      c1 = isupper(*s1) ? *s1 : toupper(*s1);
-      c2 = isupper(*s2) ? *s2 : toupper(*s2);
-      if (c1 != c2) return c1-c2;
-      s1++;
-      s2++;
-   }
-   c1 = isupper(*s1) ? *s1 : toupper(*s1);
-   c2 = isupper(*s2) ? *s2 : toupper(*s2);
-   return c1-c2;
-}
-
-#endif
+void Init (int argc, char *argv[]);
+int FigureShellTypeFromName (char *s);
+int GetShellType (void);
+void DoSetenv (const char *var, const char *val, int shell, int local);
+void DoAdd (const char *var, const char *val, int shell, int pos);
+void DoDel (const char *var, const char *val, int shell);
+void DoMove (const char *var, const char *val, int shell, int pos);
+void DoChoose (const char *val1, const char *val2, int shell);
+int SplitPath (char *path);
+int FindCurPos (const char *dir);
+void PrintEscaped (const char *s, int colon);
+void PathManip (const char *var, const char *dir, int shell, int pos, int what);
+void Usage (const char *name);
+int ComparePathElements (const char *p1, const char *p2);
+int GetCommand (void);
+int ReadEscapedToken (char *buf, int len, int eoln_flag);
+int ReadCmdFromStdin (void);
 
 /***************************************************************/
 /*                                                             */
@@ -196,13 +136,7 @@ char *s1, *s2;
 /*  is 1 and internal flag is set, print a colon before string */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 void PrintEscaped(const char *s, int colon)
-#else
-void PrintEscaped(s, colon)
-char *s;
-int colon;
-#endif
 {
    static int internal_flag = 0;
 
@@ -229,11 +163,7 @@ int colon;
 /*  environment variable.  If that doesn't work, use getpwuid  */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int GetShellType(void)
-#else
-int GetShellType()
-#endif
 {
    char *s;
    int type;
@@ -260,12 +190,7 @@ int GetShellType()
 /*  csh.                                                       */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int FigureShellTypeFromName(char *s)
-#else
-int FigureShellTypeFromName(s)
-char *s;
-#endif
 {
    int i;
    char *t;
@@ -293,13 +218,7 @@ char *s;
 /*  comparison.                                                */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int ComparePathElements(const char *p1, const char *p2)
-#else
-int ComparePathElements(p1, p2)
-char *p1;
-char *p2;
-#endif
 {
    while (*p1) {
       if (*p1 != *p2) break;
@@ -328,13 +247,7 @@ char *p2;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int main(int argc, char *argv[])
-#else
-int main(argc, argv)
-int argc;
-char *argv[];
-#endif
 {
    int what;
    int pos;
@@ -402,15 +315,7 @@ char *argv[];
 /*  Escape shell characters that may cause problems.           */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 void DoSetenv(const char *var, const char *val, int shell, int local)
-#else
-void DoSetenv(var, val, shell, local)
-char *var;
-char *val;
-int shell;
-int local;
-#endif
 {
    char *envstr;
 
@@ -459,12 +364,7 @@ int local;
 /*  Split a colon-separated path list into its components      */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int SplitPath(char *path)
-#else
-int SplitPath(path)
-char *path;
-#endif
 {
    NumComponents = 0;
    if(!path) return 0;
@@ -498,12 +398,7 @@ char *path;
 /*  Return 0 if not in current path.                           */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int FindCurPos(const char *dir)
-#else
-int FindCurPos(dir)
-char *dir;
-#endif
 {
    int i;
    for (i=0; i<NumComponents; i++)
@@ -519,16 +414,7 @@ char *dir;
 /*  Manipulate the components of a path.                       */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 void PathManip(const char *var, const char *dir, int shell, int pos, int what)
-#else
-void PathManip(var, dir, shell, pos, what)
-char *var;
-char *dir;
-int shell;
-int pos;
-int what;
-#endif
 {
    int curpos;
    char *path;
@@ -543,7 +429,7 @@ int what;
 
    if(path) {
       oldpathlen = strlen(path);
-      path=(char *) strdup(path); /* Our brain-dead system doesn't have a
+      path = strdup(path); /* Our brain-dead system doesn't have a
 				     proper prototype for strdup */
       if (!path) {
 	 fprintf(stderr, "%s: out of memory!\n", Argv[0]);
@@ -594,20 +480,8 @@ int what;
       the value from the environment each time it is called. */
 
    if (!UseCmdLine) {
-      /* Max. length is: Length of var name + '=' + oldpath + ':' + component
+      /* Max. length is: Length of var name + '=' + oldpath + ':' + component + ':'
 	 + '\0' */
-/*
-      newpathlen = oldpathlen + 3 + strlen(var) + strlen(dir); 
-
-	github.com issue #1 raised by bukzor with fix from David Skoll 
-
-	The code is wrong on all platforms (it overwrites one byte past the
-	malloc'd string with a 0. I guess it only manifested itself on x86_64
-	because of details of the glibc implementation on that platform.
-
-	Changing the 3 to a 4.
-
-*/
       newpathlen = oldpathlen + 4 + strlen(var) + strlen(dir);
       envstr = (char *) malloc(newpathlen);
       if (!envstr) {
@@ -722,14 +596,7 @@ int what;
 /*  Simple-minded:  If shell is 0, print val1, else print val2 */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 void DoChoose(const char *val1, const char *val2, int shell)
-#else
-void DoChoose(val1, val2, shell)
-char *val1;
-char *val2;
-int shell;
-#endif
 {
    switch(shell) {
       case SH_LIKE:
@@ -754,14 +621,9 @@ int shell;
 /*  Usage - print usage instructions                           */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 void Usage(const char *name)
-#else
-void Usage(name)
-char *name;
-#endif
 {
-   fprintf(stderr, "%s (version %s) Copyright 1994 by David F. Skoll\n\n",
+   fprintf(stderr, "%s (version %s) Copyright 1994-2011 by Roaring Penguin Software Inc.\n\n",
 	   name, VERSION);
    fprintf(stderr, "Usage:\n");
    fprintf(stderr, "   %s [options] set var value\n", name);
@@ -787,13 +649,7 @@ char *name;
 /* Read command-line args and options.                         */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 void Init(int argc, char *argv[])
-#else
-void Init(argc, argv)
-int argc;
-char *argv[];
-#endif
 {
    int i;
    char *s;
@@ -845,11 +701,7 @@ char *argv[];
 /*  Return 1 for success, 0 for failure.                       */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int GetCommand(void)
-#else
-int GetCommand()
-#endif
 {
    ArgsSupplied = 0;
 
@@ -890,11 +742,7 @@ int GetCommand()
 /* Read a command from stdin, handling backslash-escaped chars */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int ReadCmdFromStdin(void)
-#else
-int ReadCmdFromStdin()
-#endif
 {
    /* Try reading the directive first */
    if (!ReadEscapedToken(Directive, MAX_DIR_LEN, 0)) return 0;
@@ -919,14 +767,7 @@ int ReadCmdFromStdin()
 /* Read a token from stdin.                                    */
 /*                                                             */
 /***************************************************************/
-#ifdef HAVE_PROTOS
 int ReadEscapedToken(char *buf, int len, int eoln_flag)
-#else
-int ReadEscapedToken(buf, len, eoln_flag)
-char *buf;
-int len;
-int eoln_flag;
-#endif
 {
    static int seen_eoln = 0;
    int nread = 0;
