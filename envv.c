@@ -38,7 +38,9 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 /* Maximum number of components allowed in a colon-separated path list */
 
